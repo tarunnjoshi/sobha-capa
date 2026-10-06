@@ -222,5 +222,36 @@ sobha-capa/
 
 ---
 
-## Built with AI assistance
-This project was built with the help of an AI coding assistant (Claude Code) for planning, code generation and review, step by step, with every part reviewed and tested manually.
+## How I Built This (AI-assisted development)
+
+I used an AI coding assistant (Claude Code) as a pair programmer. I owned the product thinking, architecture decisions and review; the AI helped write code for each step I planned. Below is how the work was split.
+
+### My role — product, architecture and review
+- **Understood the domain first.** Before writing code, I mapped out who uses the system and why: what CAPA means, what each role does, and how a defect moves from the site to closure.
+- **Found a gap in the workflow.** The design screens only showed approvers. I asked *"who actually creates a CAPA request?"* — which led to adding the **Supervisor** role and a `created_by` field, so every request has an owner.
+- **Defined how approvers know there's work.** I asked how an engineer finds out something is waiting for them, which became the **"Action Required"** badge and the **"Only my pending"** filter.
+- **Chose role-based login** to make the architecture realistic (Admin, Supervisor, Engineer, QCS, QAQC), instead of a demo without authentication.
+- **Added Approve / Reject actions** so the workflow actually works end to end, not just displays data.
+- **Chose the stack deliberately:** React for a component-driven UI; framework-free PHP with a thin helper layer (DB, auth, role guards, JSON responses) to keep the API lightweight with zero dependencies; and **MySQL** as a production-grade relational database with foreign keys, transactions and ENUM constraints — matching how this would run in a real deployment.
+- **Designed for maintainability:** minimal dependencies, clear separation of concerns (one endpoint per resource, shared helpers, a single API client and auth context on the frontend), and business rules enforced in one place on the backend — so the codebase is easy to extend and review.
+- **Planned the build order:** database → API (tested with curl) → frontend shell → one screen at a time, reviewing each step before moving on.
+- **Tested every step myself:** ran the SQL, tested each API with curl, checked data in TablePlus, and clicked through every role in the browser.
+- **Shaped the documentation:** structured the walkthrough as a user story (Supervisor → approvers → Admin) so a reader understands the product, not just the screens.
+
+### AI's role — implementation support
+- Wrote code for each step based on my decisions, with comments explaining it
+- Suggested patterns (token auth, transactions, prepared statements) which I reviewed and understood before accepting
+- Helped with debugging, the README and screenshots
+
+### How I used AI output
+I didn't accept AI-generated code blindly. For every step I:
+- **Reviewed the code manually** — read each file, checked the logic against the workflow rules, and asked for changes where the design didn't fit (e.g. the missing Supervisor role)
+- **Verified behaviour, not just syntax** — tested each API with curl (success, validation errors, 401/403 cases) and checked the resulting rows in MySQL
+- **Tested every role end to end** in the browser before moving to the next step
+- **Moved forward only after a step was working and understood**
+
+### Process
+```
+Understand the problem → Decide roles & workflow → Design tables
+→ Build & test API (curl) → Build UI screen by screen → Test each role end to end → Document
+```
