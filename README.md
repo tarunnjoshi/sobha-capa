@@ -28,7 +28,7 @@ Install these first:
 
 ### 2. Clone the project
 ```bash
-git clone https://github.com/<your-username>/sobha-capa.git
+git clone https://github.com/tarunnjoshi/sobha-capa.git
 cd sobha-capa
 ```
 
