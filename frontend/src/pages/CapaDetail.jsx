@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import DocumentList from '../components/DocumentList'
+import SearchBox from '../components/SearchBox'
 import { api } from '../api'
+import { useAuth } from '../AuthContext'
 import { LEVEL_LABELS, capitalize, formatDateTime } from '../utils'
 
 // "Ankita Bhat" -> "AB" (used for the round avatar)
@@ -10,6 +13,9 @@ function initials(name) {
 
 export default function CapaDetail() {
   const { id } = useParams() // the :id from the URL /capa/:id
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [search, setSearch] = useState('')
   const [request, setRequest] = useState(null)
   const [error, setError] = useState('')
   const [comment, setComment] = useState('')
@@ -63,7 +69,16 @@ export default function CapaDetail() {
     <>
       <div className="page-header">
         <h1 className="page-title">Inspection Request Detail</h1>
-        <Link to="/capa" className="btn-secondary">← Back to list</Link>
+        <div className="header-actions">
+          {/* Searching from a detail page takes you to the full list with results */}
+          <SearchBox
+            value={search}
+            onChange={setSearch}
+            onSubmit={(text) => navigate(`/inspections?search=${encodeURIComponent(text)}`)}
+            placeholder="Search requests... (Enter)"
+          />
+          <Link to="/capa" className="btn-secondary">← Back to list</Link>
+        </div>
       </div>
 
       <div className="card">
@@ -89,6 +104,13 @@ export default function CapaDetail() {
                 </div>
               ))}
             </div>
+
+            <DocumentList
+              requestId={request.id}
+              documents={request.documents}
+              canUpload={Number(request.created_by) === Number(user.id)}
+              onUploaded={loadRequest}
+            />
           </div>
 
           {/* Right: approval timeline */}

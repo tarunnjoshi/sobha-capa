@@ -29,24 +29,43 @@ CREATE TABLE user_tokens (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- 3. Inspection Configuration screen.
---    Each sub-activity says which levels must approve it.
+-- 3. Projects (Sobha Seahaven, The Crest, ...). Added by the admin on the Projects screen.
+CREATE TABLE projects (
+    id         INT AUTO_INCREMENT PRIMARY KEY,
+    name       VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. Types of work, organised as Division > Sub-Division > Activity > Sub-Activity.
+--    This is the same for every project.
 CREATE TABLE sub_activities (
+    id           INT AUTO_INCREMENT PRIMARY KEY,
+    division     VARCHAR(100) NOT NULL,
+    sub_division VARCHAR(100) NOT NULL,
+    activity     VARCHAR(100) NOT NULL,
+    name         VARCHAR(150) NOT NULL
+);
+
+-- 5. Inspection Configuration screen.
+--    Which levels must approve a sub-activity IN A GIVEN PROJECT.
+--    Each project can have its own rules (e.g. a luxury project is stricter).
+CREATE TABLE project_rules (
     id                      INT AUTO_INCREMENT PRIMARY KEY,
-    division                VARCHAR(100) NOT NULL,
-    sub_division            VARCHAR(100) NOT NULL,
-    activity                VARCHAR(100) NOT NULL,
-    name                    VARCHAR(150) NOT NULL,
+    project_id              INT NOT NULL,
+    sub_activity_id         INT NOT NULL,
     engineer_required       BOOLEAN NOT NULL DEFAULT 0,
     qcs_required            BOOLEAN NOT NULL DEFAULT 0,
     qaqc_required           BOOLEAN NOT NULL DEFAULT 0,
-    random_inspection_count INT NULL
+    random_inspection_count INT NULL,
+    UNIQUE (project_id, sub_activity_id),       -- one rule per project + sub-activity
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY (sub_activity_id) REFERENCES sub_activities(id) ON DELETE CASCADE
 );
 
--- 4. CAPA Requests List screen. One row = one defect request.
+-- 6. CAPA Requests List screen. One row = one defect request.
 CREATE TABLE capa_requests (
     id              INT AUTO_INCREMENT PRIMARY KEY,
-    project         VARCHAR(100) NOT NULL,
+    project_id      INT NOT NULL,
     tower           VARCHAR(50)  NOT NULL,
     floor           VARCHAR(50)  NOT NULL,
     unit            VARCHAR(50)  NOT NULL,
@@ -57,11 +76,12 @@ CREATE TABLE capa_requests (
     status          ENUM('open', 'rejected', 'closed') NOT NULL DEFAULT 'open',
     created_by      INT NOT NULL,              -- the supervisor who raised it
     created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES projects(id),
     FOREIGN KEY (sub_activity_id) REFERENCES sub_activities(id),
     FOREIGN KEY (created_by) REFERENCES users(id)
 );
 
--- 5. Request Detail screen (the timeline on the right).
+-- 7. Request Detail screen (the timeline on the right).
 --    One row per level the request must pass through.
 --    step_order: 1 = engineer, 2 = qcs, 3 = qaqc
 CREATE TABLE approvals (
@@ -75,4 +95,19 @@ CREATE TABLE approvals (
     acted_at        TIMESTAMP NULL,
     FOREIGN KEY (capa_request_id) REFERENCES capa_requests(id) ON DELETE CASCADE,
     FOREIGN KEY (approver_id) REFERENCES users(id)
+);
+
+-- 8. Documents attached to a request (photos / PDFs of the defect).
+--    The file itself is stored on disk; this table stores where it is.
+CREATE TABLE documents (
+    id              INT AUTO_INCREMENT PRIMARY KEY,
+    capa_request_id INT NOT NULL,
+    original_name   VARCHAR(255) NOT NULL,     -- name shown to users, e.g. "leak-photo.jpg"
+    file_path       VARCHAR(255) NOT NULL,     -- where it is, relative to backend/
+    mime_type       VARCHAR(100) NOT NULL,
+    size_bytes      INT NOT NULL,
+    uploaded_by     INT NOT NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (capa_request_id) REFERENCES capa_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY (uploaded_by) REFERENCES users(id)
 );

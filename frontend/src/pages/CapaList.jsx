@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useAuth } from '../AuthContext'
-import { LEVEL_LABELS, capitalize, formatDateTime } from '../utils'
+import SearchBox from '../components/SearchBox'
+import { LEVEL_LABELS, capitalize, formatDateTime, useDebounced } from '../utils'
 
 const emptyFilters = {
   project: '',
@@ -27,13 +28,27 @@ function FilterSelect({ label, value, values, onChange, format = (v) => v }) {
   )
 }
 
-export default function CapaList() {
+// One component, two menus:
+//   scope="all"  -> Inspection Requests (every request, for monitoring)
+//   scope="mine" -> CAPA Workflow (only my work)
+export default function CapaList({ scope }) {
   const { user } = useAuth()
   const isApprover = ['engineer', 'qcs', 'qaqc'].includes(user.role)
+  const isMine = scope === 'mine'
+
+  // Short line under the title explaining what this list contains
+  let subtitle = 'All CAPA requests across projects.'
+  if (isMine && user.role === 'supervisor') subtitle = 'Requests you raised.'
+  if (isMine && isApprover) subtitle = `Requests that need ${LEVEL_LABELS[user.role]} approval.`
+  if (isMine && user.role === 'admin') subtitle = 'As admin you oversee every request.'
 
   const [requests, setRequests] = useState([])
   const [options, setOptions] = useState(null) // values for the dropdowns
   const [filters, setFilters] = useState(emptyFilters)
+  // Search text can come from the URL (search box on the detail page sends you here)
+  const [urlParams] = useSearchParams()
+  const [search, setSearch] = useState(urlParams.get('search') ?? '')
+  const debouncedSearch = useDebounced(search)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
@@ -46,6 +61,8 @@ export default function CapaList() {
   useEffect(() => {
     // Only send filters that have a value: {project: 'The Crest'} -> "?project=The+Crest"
     const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, value]) => value))
+    if (isMine) activeFilters.scope = 'mine'
+    if (debouncedSearch) activeFilters.search = debouncedSearch
     const query = new URLSearchParams(activeFilters).toString()
 
     setLoading(true)
@@ -53,7 +70,7 @@ export default function CapaList() {
       .then((res) => setRequests(res.data))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [filters])
+  }, [filters, isMine, debouncedSearch])
 
   function changeFilter(name, value) {
     setFilters({ ...filters, [name]: value })
@@ -62,17 +79,23 @@ export default function CapaList() {
   return (
     <>
       <div className="page-header">
-        <h1 className="page-title">CAPA Requests List</h1>
-        {user.role === 'supervisor' && (
-          <Link to="/capa/new" className="btn-primary">+ Raise Request</Link>
-        )}
+        <div>
+          <h1 className="page-title">{isMine ? 'CAPA Requests List' : 'Inspection Requests'}</h1>
+          <p className="subtitle">{subtitle}</p>
+        </div>
+        <div className="header-actions">
+          <SearchBox value={search} onChange={setSearch} placeholder="Search project, defect, tower..." />
+          {user.role === 'supervisor' && (
+            <Link to="/capa/new" className="btn-primary">+ Raise Request</Link>
+          )}
+        </div>
       </div>
 
       <div className="card">
         {options && (
           <div className="filters">
             <strong>Filter By</strong>
-            <FilterSelect label="Project" value={filters.project} values={options.projects} onChange={(v) => changeFilter('project', v)} />
+            <FilterSelect label="Project" value={filters.project} values={options.projects.map((p) => p.name)} onChange={(v) => changeFilter('project', v)} />
             <FilterSelect label="Division" value={filters.division} values={options.divisions} onChange={(v) => changeFilter('division', v)} />
             <FilterSelect label="Sub-Division" value={filters.sub_division} values={options.sub_divisions} onChange={(v) => changeFilter('sub_division', v)} />
             <FilterSelect label="Activity" value={filters.activity} values={options.activities} onChange={(v) => changeFilter('activity', v)} />
@@ -94,7 +117,7 @@ export default function CapaList() {
                 Only my pending
               </label>
             )}
-            <button className="btn-link dark" onClick={() => setFilters(emptyFilters)}>Clear</button>
+            <button className="btn-link dark" onClick={() => { setFilters(emptyFilters); setSearch('') }}>Clear</button>
           </div>
         )}
 

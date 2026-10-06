@@ -1,5 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import { api } from '../api'
+import SearchBox from '../components/SearchBox'
+import { useDebounced } from '../utils'
 
 const LEVELS = ['engineer', 'qcs', 'qaqc']
 
@@ -20,24 +22,40 @@ function LevelIcon({ on, onClick }) {
 export default function InspectionConfig() {
   const [rows, setRows] = useState([])
   const [options, setOptions] = useState(null)
+  const [projectId, setProjectId] = useState('') // rules are shown for one project at a time
   const [filters, setFilters] = useState({ division: '', sub_division: '', activity: '' })
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search)
   const [editingId, setEditingId] = useState(null) // which row is in edit mode
   const [draft, setDraft] = useState(null)         // the edited values of that row
   const [viewId, setViewId] = useState(null)       // which row shows extra details
   const [error, setError] = useState('')
 
+  // Load dropdown values, and pre-select the first project
   useEffect(() => {
-    api('/filter-options.php').then(setOptions)
+    api('/filter-options.php').then((res) => {
+      setOptions(res)
+      setProjectId(String(res.projects[0]?.id ?? ''))
+    })
   }, [])
 
   function loadRows() {
+    if (!projectId) return
     const activeFilters = Object.fromEntries(Object.entries(filters).filter(([, value]) => value))
-    api('/sub-activities.php?' + new URLSearchParams(activeFilters))
+    if (debouncedSearch) activeFilters.search = debouncedSearch
+    const query = new URLSearchParams({ project_id: projectId, ...activeFilters })
+    api('/sub-activities.php?' + query)
       .then((res) => setRows(res.data))
       .catch((err) => setError(err.message))
   }
 
-  useEffect(loadRows, [filters])
+  // Reload when the project or a filter changes
+  useEffect(loadRows, [projectId, filters, debouncedSearch])
+
+  function changeProject(value) {
+    setEditingId(null) // don't carry an open edit over to another project
+    setProjectId(value)
+  }
 
   function startEdit(row) {
     setEditingId(row.id)
@@ -58,7 +76,7 @@ export default function InspectionConfig() {
   async function save() {
     setError('')
     try {
-      await api(`/sub-activities.php?id=${editingId}`, { method: 'PUT', body: draft })
+      await api(`/sub-activities.php?project_id=${projectId}&id=${editingId}`, { method: 'PUT', body: draft })
       setEditingId(null)
       loadRows()
     } catch (err) {
@@ -68,12 +86,19 @@ export default function InspectionConfig() {
 
   return (
     <>
-      <h1 className="page-title">Inspection Configuration</h1>
+      <div className="page-header">
+        <h1 className="page-title">Inspection Configuration</h1>
+        <SearchBox value={search} onChange={setSearch} placeholder="Search sub-activity..." />
+      </div>
 
       <div className="card">
         {options && (
           <div className="filters">
             <strong>Filter By</strong>
+            {/* Project has no "all" option: rules always belong to one project */}
+            <select value={projectId} onChange={(e) => changeProject(e.target.value)}>
+              {options.projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
             {[
               ['division', 'Division', options.divisions],
               ['sub_division', 'Sub-Division', options.sub_divisions],

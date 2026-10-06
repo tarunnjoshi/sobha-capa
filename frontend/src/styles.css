@@ -293,3 +293,38 @@ button.icon-link { background: none; border: none; cursor: pointer; font-size: 1
 
 .small-input { width: 70px; padding: 5px; text-align: center; }
 .view-row td { background: #fafafa; text-align: left; color: var(--text); }
+
+/* ---------- Projects ---------- */
+.add-project { margin-bottom: 16px; }
+.success { background: #e9f9ef; color: #15803d; padding: 10px 14px; border-radius: 8px; margin: 0 0 16px; }
+.success a { color: #15803d; font-weight: 600; }
+
+/* Line under a page title */
+.subtitle { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+
+/* ---------- Search box (top right) ---------- */
+.header-actions { display: flex; align-items: center; gap: 12px; }
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  width: 280px;
+}
+.search-box input { border: none; outline: none; padding: 10px 0; background: transparent; }
+.search-icon { font-size: 13px; }
+
+/* ---------- Documents ---------- */
+.documents { margin-top: 28px; }
+.document-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.document-name { margin: 2px 0 0; font-weight: 600; }
+.upload-link { display: inline-block; margin-top: 12px; color: var(--gold); font-weight: 600; cursor: pointer; }

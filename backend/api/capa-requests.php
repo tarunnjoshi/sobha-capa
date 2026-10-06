@@ -1,5 +1,6 @@
 <?php
-// GET  /api/capa-requests.php?project=...&status=...   -> list (CAPA Requests List screen)
+// GET  /api/capa-requests.php?project=...&status=...   -> list (Inspection Requests / CAPA Workflow screens)
+//      add &scope=mine for "my work" only
 // POST /api/capa-requests.php                           -> raise a new request (supervisor only)
 
 require __DIR__ . '/../helpers.php';
@@ -19,7 +20,7 @@ function listRequests($user)
     // Which URL filters we accept, and which column each one filters.
     // Using a fixed list means users can't inject their own column names.
     $allowedFilters = [
-        'project'      => 'r.project',
+        'project'      => 'p.name',
         'division'     => 's.division',
         'sub_division' => 's.sub_division',
         'activity'     => 's.activity',
@@ -36,15 +37,40 @@ function listRequests($user)
             $params[] = $_GET[$key];
         }
     }
+    // ?search=leak -> match the text in any of these columns (top-right search box)
+    $search = trim($_GET['search'] ?? '');
+    if ($search !== '') {
+        $searchColumns = ['p.name', 'r.tower', 'r.unit', 's.division', 's.activity', 's.name', 'r.defect_type', 'r.technician'];
+        $where[] = '(' . implode(' OR ', array_map(fn($col) => "$col LIKE ?", $searchColumns)) . ')';
+        foreach ($searchColumns as $col) {
+            $params[] = "%$search%";
+        }
+    }
+
+    // ?scope=mine -> only "my work" (CAPA Workflow menu). Without it -> all requests (Inspection Requests menu)
+    //   supervisor: requests I raised
+    //   approver:   requests that pass through my level
+    //   admin:      everything (admin oversees all work)
+    if (($_GET['scope'] ?? '') === 'mine') {
+        if ($user['role'] === 'supervisor') {
+            $where[] = 'r.created_by = ?';
+            $params[] = $user['id'];
+        } elseif (in_array($user['role'], ['engineer', 'qcs', 'qaqc'])) {
+            $where[] = 'EXISTS (SELECT 1 FROM approvals x WHERE x.capa_request_id = r.id AND x.level = ?)';
+            $params[] = $user['role'];
+        }
+    }
+
     $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
     // GROUP_CONCAT joins the approval rows into one string per request,
     // e.g. levels = "engineer,qcs,qaqc" and step_statuses = "approved,approved,rejected"
-    $sql = "SELECT r.id, r.project, r.tower, s.division, s.activity, s.name AS sub_activity,
+    $sql = "SELECT r.id, p.name AS project, r.tower, s.division, s.activity, s.name AS sub_activity,
                    r.defect_type, r.defect_count, r.status, r.created_at,
                    GROUP_CONCAT(a.level  ORDER BY a.step_order) AS levels,
                    GROUP_CONCAT(a.status ORDER BY a.step_order) AS step_statuses
             FROM capa_requests r
+            JOIN projects p ON p.id = r.project_id
             JOIN sub_activities s ON s.id = r.sub_activity_id
             LEFT JOIN approvals a ON a.capa_request_id = r.id
             $whereSql
@@ -87,28 +113,28 @@ function createRequest($user)
     require_role($user, ['supervisor']);
 
     $body = get_json_body();
-    $required = ['project', 'tower', 'floor', 'unit', 'sub_activity_id', 'defect_type', 'defect_count', 'technician'];
+    $required = ['project_id', 'tower', 'floor', 'unit', 'sub_activity_id', 'defect_type', 'defect_count', 'technician'];
     foreach ($required as $field) {
         if (empty($body[$field])) {
             json_response(['error' => "$field is required"], 422);
         }
     }
 
-    // Read the Admin's rules for this sub-activity
-    $stmt = db()->prepare('SELECT * FROM sub_activities WHERE id = ?');
-    $stmt->execute([$body['sub_activity_id']]);
-    $subActivity = $stmt->fetch();
-    if (!$subActivity) {
-        json_response(['error' => 'Sub-activity not found'], 422);
+    // Read the Admin's rules for this project + sub-activity
+    $stmt = db()->prepare('SELECT * FROM project_rules WHERE project_id = ? AND sub_activity_id = ?');
+    $stmt->execute([$body['project_id'], $body['sub_activity_id']]);
+    $rule = $stmt->fetch();
+    if (!$rule) {
+        json_response(['error' => 'No rules configured for this project and sub-activity'], 422);
     }
 
     // Build the approval steps from the ✅/❌ config
     $steps = [];
-    if ($subActivity['engineer_required']) $steps[] = ['engineer', 1];
-    if ($subActivity['qcs_required'])      $steps[] = ['qcs', 2];
-    if ($subActivity['qaqc_required'])     $steps[] = ['qaqc', 3];
+    if ($rule['engineer_required']) $steps[] = ['engineer', 1];
+    if ($rule['qcs_required'])      $steps[] = ['qcs', 2];
+    if ($rule['qaqc_required'])     $steps[] = ['qaqc', 3];
     if (!$steps) {
-        json_response(['error' => 'No approval levels configured for this sub-activity'], 422);
+        json_response(['error' => 'No approval levels configured for this sub-activity in this project'], 422);
     }
 
     // A transaction makes the inserts "all or nothing":
@@ -117,11 +143,11 @@ function createRequest($user)
     $pdo->beginTransaction();
 
     $stmt = $pdo->prepare(
-        'INSERT INTO capa_requests (project, tower, floor, unit, sub_activity_id, defect_type, defect_count, technician, created_by)
+        'INSERT INTO capa_requests (project_id, tower, floor, unit, sub_activity_id, defect_type, defect_count, technician, created_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
-        $body['project'], $body['tower'], $body['floor'], $body['unit'], $body['sub_activity_id'],
+        $body['project_id'], $body['tower'], $body['floor'], $body['unit'], $body['sub_activity_id'],
         $body['defect_type'], (int) $body['defect_count'], $body['technician'], $user['id'],
     ]);
     $requestId = $pdo->lastInsertId();

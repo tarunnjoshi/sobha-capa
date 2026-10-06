@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api } from '../api'
-import { LEVEL_LABELS } from '../utils'
+import { api, uploadDocuments } from '../api'
+import { LEVEL_LABELS, checkFiles, formatSize } from '../utils'
 
 const emptyForm = {
-  project: '',
+  project_id: '',
   tower: '',
   floor: '',
   unit: '',
@@ -19,38 +19,76 @@ export default function RaiseRequest() {
   const [form, setForm] = useState(emptyForm)
   const [subActivities, setSubActivities] = useState([])
   const [projects, setProjects] = useState([])
+  const [files, setFiles] = useState([]) // photos / PDFs to attach
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
-  // Load the sub-activity dropdown and existing project names (for suggestions)
+  // Load the project dropdown once
   useEffect(() => {
-    api('/sub-activities.php').then((res) => setSubActivities(res.data))
     api('/filter-options.php').then((res) => setProjects(res.projects))
   }, [])
 
+  // Rules are per project, so reload the sub-activities (with this project's rules)
+  // every time the project changes
+  useEffect(() => {
+    if (!form.project_id) {
+      setSubActivities([])
+      return
+    }
+    api(`/sub-activities.php?project_id=${form.project_id}`).then((res) => setSubActivities(res.data))
+  }, [form.project_id])
+
   // One change handler for all inputs: uses the input's "name" attribute
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    if (name === 'project_id') {
+      // New project = different rules, so the user must pick the sub-activity again
+      setForm({ ...form, project_id: value, sub_activity_id: '' })
+    } else {
+      setForm({ ...form, [name]: value })
+    }
   }
 
-  // Show which levels will approve, based on the Admin's config
+  // Show which levels will approve, based on the Admin's rules for this project
   const selected = subActivities.find((s) => String(s.id) === form.sub_activity_id)
   const approvers = selected
     ? ['engineer', 'qcs', 'qaqc'].filter((level) => Number(selected[`${level}_required`]))
     : []
 
+  function handleFiles(e) {
+    const chosen = [...e.target.files]
+    const problem = checkFiles(chosen)
+    setError(problem)
+    setFiles(problem ? [] : chosen)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     setError('')
     setSaving(true)
+
+    // Step 1: create the request
+    let requestId
     try {
-      await api('/capa-requests.php', { method: 'POST', body: form })
-      navigate('/capa') // back to the list, the new request is on top
+      const res = await api('/capa-requests.php', { method: 'POST', body: form })
+      requestId = res.id
     } catch (err) {
       setError(err.message)
-    } finally {
       setSaving(false)
+      return
     }
+
+    // Step 2: attach the files. If this fails the request still exists,
+    // so we open it anyway: the supervisor can add the files from the detail page.
+    if (files.length) {
+      try {
+        await uploadDocuments(requestId, files)
+      } catch (err) {
+        alert(`Request raised, but the documents were not uploaded: ${err.message}`)
+      }
+    }
+
+    navigate(`/capa/${requestId}`)
   }
 
   return (
@@ -60,11 +98,10 @@ export default function RaiseRequest() {
       <form className="card form-grid" onSubmit={handleSubmit}>
         <div>
           <label>Project</label>
-          {/* datalist = free text, but suggests existing projects */}
-          <input name="project" list="projects" value={form.project} onChange={handleChange} required />
-          <datalist id="projects">
-            {projects.map((p) => <option key={p} value={p} />)}
-          </datalist>
+          <select name="project_id" value={form.project_id} onChange={handleChange} required>
+            <option value="">Select project</option>
+            {projects.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
         </div>
         <div>
           <label>Tower</label>
@@ -81,8 +118,8 @@ export default function RaiseRequest() {
 
         <div className="full">
           <label>Sub-Activity</label>
-          <select name="sub_activity_id" value={form.sub_activity_id} onChange={handleChange} required>
-            <option value="">Select sub-activity</option>
+          <select name="sub_activity_id" value={form.sub_activity_id} onChange={handleChange} disabled={!form.project_id} required>
+            <option value="">{form.project_id ? 'Select sub-activity' : 'Select a project first'}</option>
             {subActivities.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.division} / {s.activity})
@@ -107,6 +144,14 @@ export default function RaiseRequest() {
         <div>
           <label>Technician</label>
           <input name="technician" value={form.technician} onChange={handleChange} required />
+        </div>
+
+        <div className="full">
+          <label>Documents (photos or PDF, max 5 files, 2 MB each)</label>
+          <input type="file" multiple accept=".jpg,.jpeg,.png,.pdf" onChange={handleFiles} />
+          {files.map((f) => (
+            <p key={f.name} className="muted-text">📎 {f.name} · {formatSize(f.size)}</p>
+          ))}
         </div>
 
         {error && <p className="error full">{error}</p>}

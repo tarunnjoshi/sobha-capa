@@ -14,7 +14,8 @@ function distinct_values($table, $column)
 }
 
 json_response([
-    'projects'       => distinct_values('capa_requests', 'project'),
+    // Projects come with their id, because the config page and raise form need it
+    'projects'       => db()->query('SELECT id, name FROM projects ORDER BY name')->fetchAll(),
     'divisions'      => distinct_values('sub_activities', 'division'),
     'sub_divisions'  => distinct_values('sub_activities', 'sub_division'),
     'activities'     => distinct_values('sub_activities', 'activity'),

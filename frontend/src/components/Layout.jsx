@@ -4,6 +4,8 @@ import { useAuth } from '../AuthContext'
 // Sidebar menu. "roles" = who can see the link.
 const menu = [
   { to: '/config', label: 'Admin Configuration', roles: ['admin'] },
+  { to: '/projects', label: 'Projects', roles: ['admin'] },
+  { to: '/inspections', label: 'Inspection Requests', roles: ['admin', 'supervisor', 'engineer', 'qcs', 'qaqc'] },
   { to: '/capa/new', label: 'Defect Logging', roles: ['supervisor'] },
   { to: '/capa', label: 'CAPA Workflow', roles: ['admin', 'supervisor', 'engineer', 'qcs', 'qaqc'] },
 ]

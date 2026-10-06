@@ -6,6 +6,7 @@ import CapaList from './pages/CapaList'
 import CapaDetail from './pages/CapaDetail'
 import RaiseRequest from './pages/RaiseRequest'
 import InspectionConfig from './pages/InspectionConfig'
+import Projects from './pages/Projects'
 
 // Wraps pages that need login (and optionally a specific role)
 function Protected({ roles, children }) {
@@ -28,10 +29,13 @@ export default function App() {
 
       {/* Every page inside here gets the sidebar (Layout) */}
       <Route element={<Protected><Layout /></Protected>}>
-        <Route path="/capa" element={<CapaList />} />
+        {/* Same component, different "key" so React starts each page with fresh state (filters) */}
+        <Route path="/inspections" element={<CapaList key="all" scope="all" />} />
+        <Route path="/capa" element={<CapaList key="mine" scope="mine" />} />
         <Route path="/capa/:id" element={<CapaDetail />} />
         <Route path="/capa/new" element={<Protected roles={['supervisor']}><RaiseRequest /></Protected>} />
         <Route path="/config" element={<Protected roles={['admin']}><InspectionConfig /></Protected>} />
+        <Route path="/projects" element={<Protected roles={['admin']}><Projects /></Protected>} />
       </Route>
 
       {/* Any unknown URL -> CAPA list */}

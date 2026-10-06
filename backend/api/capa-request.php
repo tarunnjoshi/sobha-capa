@@ -13,9 +13,10 @@ if (!$id) {
 
 // The request + its sub-activity info + who raised it
 $stmt = db()->prepare(
-    'SELECT r.*, s.division, s.sub_division, s.activity, s.name AS sub_activity,
+    'SELECT r.*, p.name AS project, s.division, s.sub_division, s.activity, s.name AS sub_activity,
             u.name AS created_by_name
      FROM capa_requests r
+     JOIN projects p ON p.id = r.project_id
      JOIN sub_activities s ON s.id = r.sub_activity_id
      JOIN users u ON u.id = r.created_by
      WHERE r.id = ?'
@@ -39,7 +40,17 @@ $stmt = db()->prepare(
 $stmt->execute([$id]);
 $approvals = $stmt->fetchAll();
 
+// Attached documents (photos / PDFs)
+$stmt = db()->prepare(
+    'SELECT id, original_name, mime_type, size_bytes, created_at
+     FROM documents
+     WHERE capa_request_id = ?
+     ORDER BY id'
+);
+$stmt->execute([$id]);
+
 $request['approvals'] = $approvals;
+$request['documents'] = $stmt->fetchAll();
 $request['current_level'] = current_level($request['status'], $approvals);
 $request['my_turn'] = $request['current_level'] === $user['role'];
 
