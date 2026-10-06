@@ -1,0 +1,295 @@
+/* ---------- Colours (from the Sobha design) ---------- */
+:root {
+  --sidebar: #232323;
+  --gold: #b89b6e;
+  --bg: #f1f2f6;
+  --card: #ffffff;
+  --text: #222222;
+  --muted: #6b6f80;
+  --border: #e6e7ec;
+  --green: #22c55e;
+  --red: #ef4444;
+  --orange: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+
+.center { text-align: center; margin-top: 40vh; }
+.error { color: var(--red); margin: 8px 0; }
+
+/* ---------- Layout: sidebar + content ---------- */
+.layout { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 230px;
+  background: var(--sidebar);
+  color: #fff;
+  padding: 24px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.logo {
+  color: var(--gold);
+  font-family: Georgia, serif;
+  font-size: 24px;
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+.menu-title { font-size: 11px; color: #aaa; margin: 0 0 10px 4px; }
+
+.menu-link {
+  display: block;
+  padding: 12px 14px;
+  margin-bottom: 6px;
+  border-radius: 8px;
+  color: #ddd;
+  text-decoration: none;
+}
+.menu-link:hover { background: #333; }
+.menu-link.active { background: var(--gold); color: #fff; }
+
+.user-box {
+  margin-top: auto;
+  border-top: 1px solid #3a3a3a;
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.user-box span { font-size: 12px; color: var(--gold); }
+
+.content { flex: 1; padding: 28px 32px; }
+.page-title { margin: 0 0 20px; font-size: 26px; font-weight: 600; }
+
+/* ---------- Buttons & forms ---------- */
+.btn-primary {
+  background: var(--gold);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.btn-primary:disabled { opacity: 0.6; cursor: default; }
+
+.btn-link {
+  background: none;
+  border: none;
+  color: #aaa;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.btn-link:hover { color: #fff; }
+
+input, select, textarea {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}
+
+/* ---------- Login page ---------- */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--sidebar);
+}
+
+.login-card {
+  background: var(--card);
+  width: 360px;
+  padding: 32px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.login-card h2 { margin: 0 0 8px; text-align: center; }
+.login-card label { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.login-card .btn-primary { margin-top: 14px; }
+
+/* ---------- Page header & card ---------- */
+.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.page-header .page-title { margin: 0; }
+
+.card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 22px;
+}
+
+a.btn-primary { text-decoration: none; display: inline-block; }
+
+.btn-secondary {
+  background: #fff;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.btn-link.dark { color: var(--muted); }
+.btn-link.dark:hover { color: var(--text); }
+
+.muted { color: var(--muted); text-align: center; padding: 24px; }
+
+/* ---------- Filters ---------- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.filters select, .filters input[type='date'] { width: auto; min-width: 120px; padding: 7px 8px; font-size: 13px; }
+
+.checkbox { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.checkbox input { width: auto; }
+
+/* ---------- Table ---------- */
+.table { width: 100%; border-collapse: collapse; }
+.table th { text-align: center; font-size: 13px; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+.table td {
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 14px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.status-cell { display: flex; align-items: center; justify-content: center; gap: 4px; color: var(--text); }
+.status-cell span:last-child { margin-left: 6px; }
+
+/* Status dots: the class is the step status */
+.dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+.dot.approved { background: var(--green); }
+.dot.pending { background: var(--orange); }
+.dot.rejected { background: var(--red); }
+
+.badge {
+  display: inline-block;
+  margin-top: 4px;
+  background: #fff4e0;
+  color: #b26b00;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.icon-link { text-decoration: none; font-size: 18px; }
+
+/* ---------- Forms ---------- */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 20px;
+  max-width: 760px;
+}
+.form-grid .full { grid-column: 1 / -1; }
+.form-grid label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.hint { font-size: 13px; color: var(--gold); margin: 6px 0 0; }
+.form-actions { display: flex; justify-content: flex-end; gap: 10px; }
+
+/* ---------- Request detail ---------- */
+a.btn-secondary { text-decoration: none; }
+.muted-text { color: var(--muted); font-size: 13px; margin: 4px 0; }
+
+.detail-top {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.detail-top h3 { margin: 0; }
+
+.detail-grid { display: grid; grid-template-columns: 1fr 1.3fr; gap: 32px; margin-top: 16px; }
+.detail-grid h4 { margin: 8px 0 16px; }
+
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 20px; }
+.info-label { margin: 0; font-size: 12px; color: var(--muted); }
+.info-value { margin: 2px 0 0; font-weight: 600; }
+
+/* Timeline: a vertical line with a dot next to each card */
+.timeline { border-left: 3px solid var(--text); margin-left: 8px; }
+.timeline-item { position: relative; padding: 0 0 18px 26px; }
+.timeline-dot {
+  position: absolute;
+  left: -10px;
+  top: 22px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--orange);
+}
+.timeline-dot.approved { background: var(--green); }
+.timeline-dot.rejected { background: var(--red); }
+
+.step-card { border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+.step-head { display: flex; align-items: center; gap: 10px; }
+.step-head .step-badge { margin-left: auto; }
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.step-badge { padding: 5px 12px; border-radius: 6px; font-size: 12px; color: #fff; background: var(--orange); }
+.step-badge.approved { background: var(--green); }
+.step-badge.rejected { background: var(--red); }
+.step-comment-title { margin: 10px 0 0; font-weight: 600; }
+
+.action-box { border: 1px dashed var(--gold); border-radius: 10px; padding: 14px; margin-top: 6px; }
+.action-box h4 { margin: 0 0 10px; }
+.action-box .form-actions { margin-top: 10px; }
+
+.btn-approve, .btn-reject { border: none; border-radius: 8px; padding: 10px 20px; color: #fff; cursor: pointer; }
+.btn-approve { background: var(--green); }
+.btn-reject { background: var(--red); }
+.btn-approve:disabled, .btn-reject:disabled { opacity: 0.6; }
+
+/* ---------- Inspection configuration ---------- */
+.table .left { text-align: left; }
+button.icon-link { background: none; border: none; cursor: pointer; font-size: 16px; }
+
+.level-icon {
+  width: 28px;
+  height: 22px;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-weight: 700;
+}
+.level-icon.on { background: var(--green); }
+.level-icon.off { background: var(--red); }
+.level-icon.editable { cursor: pointer; outline: 2px dashed var(--gold); outline-offset: 2px; }
+
+.small-input { width: 70px; padding: 5px; text-align: center; }
+.view-row td { background: #fafafa; text-align: left; color: var(--text); }
